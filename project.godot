@@ -1,0 +1,32 @@
+; dot-browser — finding a server to play on.
+;
+; The distributable is `addons/dot_browser/`. This project exists so the addon
+; can be opened and validated standalone.
+;
+; `addons/dot_core/` is a LOCAL SYMLINK to ../dot-core/addons/dot_core and is
+; gitignored — dot-core is a separate repository. See CLAUDE.md.
+
+config_version=5
+
+[application]
+
+config/name="dot-browser"
+config/description="A server browser: a query client speaking DQP and A2S, and a list model with sources, filters, sorting, favourites and history."
+config/version="0.1.0"
+run/main_scene="res://examples/browser_selftest.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/dot_core/plugin.cfg", "res://addons/dot_browser/plugin.cfg")
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

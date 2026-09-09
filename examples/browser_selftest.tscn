@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://examples/browser_selftest.gd" id="1_browser"]
+
+[node name="BrowserSelfTest" type="Node"]
+script = ExtResource("1_browser")
