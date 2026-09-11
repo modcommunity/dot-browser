@@ -34,6 +34,12 @@ const RESPONSE_RULES := 0x45          ## 'E'
 const RESPONSE_CHALLENGE := 0x41      ## 'A'
 const RESPONSE_PING := 0x6A           ## 'j'
 
+## The A2S_INFO payload byte-for-byte.
+##
+## Part of the wire format rather than a description of anything, so it is spelled
+## exactly as the protocol spells it: a server receiving anything else is not being
+## asked in A2S, and will answer nothing. dot-server's own responder carries the same
+## constant with the same note.
 const INFO_PAYLOAD := "Source Engine Query"
 
 const EDF_GAME_ID := 0x01
