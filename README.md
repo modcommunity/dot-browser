@@ -1,4 +1,4 @@
-This is the **server browser** asset for TMC's **Dot** collection. dot-server has answered queries since the day it was written, and until now nothing in this family had ever asked one anything.
+This is the **server browser** asset for TMC's **Dot** collection. dot-server-query has answered queries since the day it was written, and until now nothing in this family had ever asked one anything.
 
 This collection of assets provides modular building blocks for creating games and applications within the TMC ecosystem, ensuring consistency and interoperability across all `dot-*` assets. This includes core functionality, networking, authentication, cloud integration, and more.
 
@@ -12,7 +12,7 @@ This asset, along with all the others, was built initially with **Claude Code** 
 I intend on reviewing code, testing, and editing documentation regularly. If you're interested in helping out, please let me know!
 
 ## Finding A Server To Play On
-**A query client and a list model.** Speaks dot-server's DQP over UDP, the same protocol as JSON over a WebSocket for browser builds, and A2S for the twenty years of servers and tooling that speak nothing else. On top of that: sources, filters, sorting, favourites and history.
+**A query client and a list model.** Speaks dot-server-query's DQP over UDP, the same protocol as JSON over a WebSocket for browser builds, and A2S for the twenty years of servers and tooling that speak nothing else. On top of that: sources, filters, sorting, favourites and history.
 
 ## Why
 
@@ -26,7 +26,7 @@ I intend on reviewing code, testing, and editing documentation regularly. If you
 
 Copy `addons/dot_browser/` and [`dot-core`](https://github.com/modcommunity/dot-core)'s `addons/dot_core/` into your project and enable dot-browser in *Project → Project Settings → Plugins*.
 
-[dot-server](https://github.com/modcommunity/dot-server) is what this asks, and is not a dependency. The wire format is implemented here, and nothing in this addon names a class from it. Requires Godot 4.7 or newer.
+[dot-server-query](https://github.com/modcommunity/dot-server-query) is what this asks, and is not a dependency. The wire format is implemented here, and nothing in this addon names a class from it. Requires Godot 4.7 or newer.
 
 ## Five minutes
 
@@ -69,7 +69,7 @@ A source produces **addresses**, never player counts. What a server is, is what 
 
 ## In a browser build
 
-A web page cannot open a UDP socket, so it can never speak A2S at any price. dot-server serves DQP as plain JSON over a WebSocket for exactly this, and `Protocol.AUTO` picks it automatically when the platform has no UDP. It asks about the capability, not the platform name.
+A web page cannot open a UDP socket, so it can never speak A2S at any price. dot-server-query serves DQP as plain JSON over a WebSocket for exactly this, and `Protocol.AUTO` picks it automatically when the platform has no UDP. It asks about the capability, not the platform name.
 
 ## Validating
 

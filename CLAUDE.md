@@ -15,7 +15,7 @@ ln -s ../../dot-core/addons/dot_core addons/dot_core
 ## Why this exists
 
 From the family CLAUDE.md's list of gaps: *"there is no query client, so nothing in
-the family shows a server browser."* dot-server has answered A2S and its own DQP
+the family shows a server browser."* dot-server-query has answered A2S and its own DQP
 since it was written, over UDP and over WebSocket, with a challenge, fragmentation,
 conditional polling and a documented protocol — and nothing had ever sent it a
 datagram. That is this family's most repeated shape one level up: a whole protocol
@@ -23,7 +23,7 @@ produced correctly and consumed by nobody.
 
 ## The deliberate duplication, and how it is kept honest
 
-`DotBrowserDqp` is a **second implementation of a wire format dot-server already
+`DotBrowserDqp` is a **second implementation of a wire format dot-server-query already
 implements**. It has to be: only dot-core may ever be a hard dependency, and in
 GDScript a script that merely *mentions* an absent `class_name` fails to parse and
 takes every script referencing it down with it. Naming `DotQueryProtocol` would make
@@ -40,12 +40,12 @@ const GOLDEN_QUERY := "445150310104070000000000000001000000efcdab8967452301..."
 ```
 
 If the two ever drift, a fixture fails rather than a browser quietly showing nothing.
-**Regenerate them from dot-server, never from here.**
+**Regenerate them from dot-server-query, never from here.**
 
 ## The A2S trap that is worth the whole file
 
 A2S's player-count byte is `humans + bots`. Source has always written it that way and
-so does dot-server; the bot count has a byte of its own. A browser that shows the
+so does dot-server-query; the bot count has a byte of its own. A browser that shows the
 first number shows a server with eight bots and nobody on it as an eight-player
 server, and the player who joins finds an empty map.
 
