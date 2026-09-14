@@ -17,8 +17,6 @@ extends DotBrowserQuery
 ## A server old enough not to challenge answers the first request, which is why the
 ## first one is sent without one and both replies are handled.
 
-const CHANNEL := "browser"
-
 enum State { IDLE, INFO, PLAYERS, DONE }
 
 ## Ask for the roster after the info. One more round trip per server, so a browser
@@ -38,6 +36,10 @@ var _info: Dictionary = {}
 var _players: Array = []
 var _split: Array[PackedByteArray] = []
 var _split_id: int = -1
+
+
+func query_name() -> StringName:
+	return &"a2s"
 
 
 func begin() -> DotResult:

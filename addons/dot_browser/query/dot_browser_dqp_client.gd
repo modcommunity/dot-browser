@@ -23,8 +23,6 @@ extends DotBrowserQuery
 ##                    <-  RESULT {...}            (possibly in up to 16 fragments)
 ## [/codeblock]
 
-const CHANNEL := "browser"
-
 enum State { IDLE, CHALLENGING, QUERYING, DONE }
 
 ## Which sections to ask for. More sections is a bigger response, and a response over
@@ -56,6 +54,10 @@ var _fragment_total: int = 0
 
 
 ## Opens the socket and sends the first request.
+func query_name() -> StringName:
+	return &"dqp"
+
+
 func begin() -> DotResult:
 	if not DotPlatform.has_udp():
 		# A browser tab cannot open a UDP socket at any price. This is not a failure

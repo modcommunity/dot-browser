@@ -20,8 +20,6 @@ extends DotBrowserQuery
 ## development page's socket and failed against a server with no certificate. The URL
 ## is the caller's; a page served over HTTPS has to be given a [code]wss://[/code] one.
 
-const CHANNEL := "browser"
-
 enum State { IDLE, CONNECTING, WAITING, DONE }
 
 var sections: PackedStringArray = PackedStringArray(["info"])
@@ -36,6 +34,10 @@ var _sent: bool = false
 
 
 ## The URL this will open: the target's own, or one derived from its address.
+func query_name() -> StringName:
+	return &"dqp-ws"
+
+
 func url() -> String:
 	if target == null:
 		return ""

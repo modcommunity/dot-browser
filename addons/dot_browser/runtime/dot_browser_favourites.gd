@@ -44,24 +44,33 @@ func load_from_disk() -> DotResult:
 
 	var read := DotPaths.read_json(path)
 	if not read.ok:
+		DotLog.warn(CHANNEL, "the saved server list could not be read", {
+			"file": path, "error": str(read.error)
+		})
 		return read.wrap("Could not read the saved server list.")
 
 	var data: Variant = read.value
 	if typeof(data) != TYPE_DICTIONARY:
+		DotLog.warn(CHANNEL, "the saved server list is not an object", {
+			"file": path, "found": type_string(typeof(data))
+		})
 		return DotResult.fail(
 			DotError.CODE_PARSE, "The saved server list is not an object.", path
 		)
 
 	var doc: Dictionary = data
 	var loaded := 0
+	var dropped := 0
 
 	var saved: Variant = doc.get("favourites")
 	if typeof(saved) == TYPE_ARRAY:
 		for row in (saved as Array):
 			if typeof(row) != TYPE_DICTIONARY:
+				dropped += 1
 				continue
 			var parsed := DotBrowserEntry.from_dictionary(row as Dictionary)
 			if not parsed.ok:
+				dropped += 1
 				continue
 			var entry: DotBrowserEntry = parsed.value
 			_favourites[entry.key()] = entry.to_dictionary()
@@ -71,10 +80,26 @@ func load_from_disk() -> DotResult:
 	if typeof(past) == TYPE_ARRAY:
 		for row in (past as Array):
 			if typeof(row) != TYPE_DICTIONARY:
+				dropped += 1
 				continue
 			_history.append((row as Dictionary).duplicate(true))
 
 	_trim_history()
+
+	# [b]A row this could not read is a server a player saved and will not see
+	# again[/b], and the next [method save] writes the file back without it. Skipping
+	# it is right -- one bad row must not cost somebody the other forty -- but doing it
+	# in silence means the only evidence is a favourite that is simply gone, which
+	# reads as the feature not working.
+	if dropped > 0:
+		DotLog.warn(CHANNEL, "saved servers could not be read and were dropped", {
+			"dropped": dropped, "kept": loaded, "file": path
+		})
+	else:
+		DotLog.debug(CHANNEL, "saved servers loaded", {
+			"favourites": loaded, "history": _history.size(), "file": path
+		})
+
 	return DotResult.success(loaded)
 
 
@@ -90,6 +115,15 @@ func save() -> DotResult:
 	})
 
 	if not written.ok:
+		# [b]ERROR, where a refused favourite would be DEBUG.[/b] Nothing was wrong
+		# with what was asked for -- the entry validated, it is in the list in memory,
+		# and this addon then failed to make that survive the process. The caller is a
+		# button somebody pressed, and the ones that exist drop this DotResult on the
+		# floor: without a line here the whole symptom is favourites that are there
+		# until the game is restarted.
+		DotLog.error(CHANNEL, "the server list could not be saved", {
+			"file": path, "favourites": favourites.size(), "error": str(written.error)
+		})
 		return written.wrap("Could not save the server list.")
 
 	# user:// on the web is an IndexedDB mirror. Without this the file exists in the
@@ -99,6 +133,10 @@ func save() -> DotResult:
 	return DotResult.success(favourites.size())
 
 
+## [b]The one caller that cannot report anything, which is why load_from_disk logs.[/b]
+## Every read path goes through here and there is nowhere for a [DotResult] to go: a
+## corrupt file makes `entries()` return an empty array, and an empty array is exactly
+## what a player with no favourites gets.
 func _ensure_loaded() -> void:
 	if not _loaded:
 		load_from_disk()

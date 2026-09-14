@@ -73,11 +73,25 @@ func fetch() -> DotResult:
 		)
 
 	var out: Array[DotBrowserTarget] = []
+	var dropped := 0
+
 	for entry in (value as Array):
 		var target := entry as DotBrowserTarget
 		if target == null:
+			dropped += 1
 			continue
 		target.source = source_name()
 		out.append(target)
+
+	# [b]The failure this addon's own notes describe as the kind that survives.[/b] A
+	# source that returns rows which are not targets -- a dictionary straight off an
+	# HTTP response, a null from a row it could not parse -- is not an error anywhere:
+	# `fetch` succeeds, the browser adds what it got, and the list is simply shorter
+	# than the master server said it would be. There is nothing to see and nothing to
+	# search for, so this is the only place it can be said.
+	if dropped > 0:
+		DotLog.warn(CHANNEL, "a server source produced rows that are not targets", {
+			"source": String(source_name()), "dropped": dropped, "kept": out.size()
+		})
 
 	return DotResult.success(out)
