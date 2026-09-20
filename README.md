@@ -78,3 +78,7 @@ godot --headless --path . --import
 godot --headless --path . res://examples/browser_selftest.tscn
 # 113 checks, including a real query over a real loopback socket.
 ```
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
