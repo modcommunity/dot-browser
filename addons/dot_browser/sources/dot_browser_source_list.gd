@@ -24,14 +24,17 @@ var file_path: String = ""
 
 
 static func of(entries: PackedStringArray, port: int = 27015) -> DotBrowserSourceList:
-	var out := DotBrowserSourceList.new()
+	# Not this class's own name. A script that names itself in an expression, loaded after
+	# its base, cuts Godot 4.7.2's exit teardown short and leaks every script loaded before
+	# it. See docs/gdscript-hazards.md, "A script that names itself".
+	var out := new()
 	out.addresses = entries
 	out.default_port = port
 	return out
 
 
 static func of_file(path: String) -> DotBrowserSourceList:
-	var out := DotBrowserSourceList.new()
+	var out := new()
 	out.file_path = path
 	return out
 
