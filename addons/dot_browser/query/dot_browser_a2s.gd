@@ -122,7 +122,7 @@ static func challenge_of(data: PackedByteArray) -> int:
 ## Reads one split-packet header. Returns
 ## [code]{id, total, index, payload}[/code], or an empty dictionary.
 ##
-## This is the uncompressed Source format, which is what dot-server writes. The
+## This is A2S's uncompressed split-packet format, which is what dot-server writes. The
 ## compressed variant carries two extra fields on the first packet only and is
 ## deliberately not supported: the branches that use it are the branches whose
 ## multi-packet framing has been the single most common source of broken query
