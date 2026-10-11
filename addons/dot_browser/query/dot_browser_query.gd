@@ -64,8 +64,93 @@ func poll(_now_ms: int) -> bool:
 
 ## Releases the socket. Safe to call twice, and called on every finishing path —
 ## a browser that abandons two hundred queries holds two hundred sockets otherwise.
+## A subclass that overrides it calls [method lookup_cancel] too.
 func close() -> void:
-	pass
+	lookup_cancel()
+
+
+# --- Name lookup -------------------------------------------------------------
+
+## [b]A UDP socket takes an IP, and a listing hands out names.[/b] A server whose team
+## addresses it by hostname is listed by that hostname — it is the same server whatever
+## the name resolves to this week — and [method PacketPeerUDP.connect_to_host] refuses a
+## name with "Invalid IP address", which reached a player as the server being down. So
+## the UDP clients look the name up first, through the engine's threaded resolver,
+## because a blocking lookup per row is a refresh that freezes the frame once per server.
+
+var _lookup_id: int = -1
+var _lookup_deadline: int = 0
+
+
+## Starts a lookup if the target is a name. [code]success(ip)[/code] when the address is
+## already an IP, [code]success("")[/code] when a lookup is now pending (poll
+## [method lookup_poll]), a failure when one could not be started.
+func lookup_begin() -> DotResult:
+	var host := target.address.trim_prefix("[").trim_suffix("]")
+	if host.is_valid_ip_address():
+		return DotResult.success(host)
+
+	_lookup_id = IP.resolve_hostname_queue_item(host, IP.TYPE_ANY)
+	if _lookup_id == IP.RESOLVER_INVALID_ID:
+		_lookup_id = -1
+		return DotResult.fail(
+			DotError.CODE_NETWORK, "Could not start a name lookup.", host
+		)
+
+	_lookup_deadline = Time.get_ticks_msec() + timeout_ms
+	return DotResult.success("")
+
+
+func lookup_pending() -> bool:
+	return _lookup_id >= 0
+
+
+## [code]success("")[/code] while still waiting, [code]success(ip)[/code] once resolved,
+## a failure when the name does not resolve or the lookup outlived [member timeout_ms].
+func lookup_poll(now_ms: int) -> DotResult:
+	if _lookup_id < 0:
+		return DotResult.fail(DotError.CODE_STATE, "No name lookup is running.")
+
+	match IP.get_resolve_item_status(_lookup_id):
+		IP.RESOLVER_STATUS_WAITING:
+			if now_ms >= _lookup_deadline:
+				lookup_cancel()
+				return DotResult.fail(
+					DotError.CODE_TIMEOUT, "The name lookup took too long.", target.address
+				)
+			return DotResult.success("")
+
+		IP.RESOLVER_STATUS_DONE:
+			var ip := _prefer_ipv4(IP.get_resolve_item_addresses(_lookup_id))
+			lookup_cancel()
+			if ip == "":
+				return DotResult.fail(
+					DotError.CODE_NETWORK, "That name has no address.", target.address
+				)
+			return DotResult.success(ip)
+
+	lookup_cancel()
+	return DotResult.fail(
+		DotError.CODE_NETWORK, "That name does not resolve.", target.address
+	)
+
+
+## The first IPv4 address, else the first of any kind.
+##
+## A name with both records is answered AAAA-first on most resolvers (`localhost` is
+## `::1` here), and a game server listening on IPv4 alone then looks down. The site leads
+## with a server's IPv4 address for the same reason; a v6-only name still resolves.
+static func _prefer_ipv4(addresses: Array) -> String:
+	for a in addresses:
+		if str(a).is_valid_ip_address() and not str(a).contains(":"):
+			return str(a)
+	return str(addresses[0]) if not addresses.is_empty() else ""
+
+
+func lookup_cancel() -> void:
+	if _lookup_id >= 0:
+		IP.erase_resolve_item(_lookup_id)
+		_lookup_id = -1
 
 
 ## Sets the result, closes, and returns it. What every finishing path calls.

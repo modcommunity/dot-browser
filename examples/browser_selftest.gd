@@ -25,8 +25,8 @@ extends Node
 ## godot --headless --path . res://examples/browser_selftest.tscn
 ## [/codeblock]
 
-const SECTIONS := 10
-const CHECKS := 113
+const SECTIONS := 11
+const CHECKS := 128
 
 ## Produced by dot-server's DotQueryProtocol.build_request(TYPE_QUERY, 7,
 ## 0x0123456789abcdef, {"sections": ["info"]}, true).
@@ -144,7 +144,8 @@ func _run() -> void:
 	_test_entries()
 	_test_filter()
 	_test_favourites()
-	_test_sources()
+	await _test_sources()
+	await _test_backbone()
 	await _test_over_a_socket()
 
 	_line("")
@@ -642,17 +643,131 @@ func _test_sources() -> void:
 	var failed: DotResult = await missing.fetch()
 	_check(not failed.ok and failed.code() == DotError.CODE_IO, "a missing file fails")
 
-	var backbone := DotBrowserSourceBackbone.new()
-	_check(not backbone.is_available(), "the backbone source is absent with no client")
-	var refused: DotResult = await backbone.fetch()
+	var base := DotBrowserSource.new()
+	var unimplemented: DotResult = await base.fetch()
+	_check(not unimplemented.ok, "the base source fetches nothing")
+
+
+# --- The site's listing ----------------------------------------------------
+
+## Answers [code]get_json[/code] from canned pages, and remembers what it was asked.
+class FakeListing extends RefCounted:
+	var pages: Array = []
+	var urls: PackedStringArray = PackedStringArray()
+	var fail_with: int = 0
+
+	func get_json(url: String, _headers: Dictionary = {}) -> DotResult:
+		urls.append(url)
+		if fail_with != 0:
+			return DotResult.fail(DotError.CODE_HTTP, "No such app.", str(fail_with))
+		var page := int(url.get_slice("page=", 1).get_slice("&", 0))
+		return DotResult.success(pages[page - 1] if page >= 1 and page <= pages.size() else {})
+
+
+func _test_backbone() -> void:
+	_section("the site's server listing")
+
+	var off := DotBrowserSourceBackbone.new()
+	_check(not off.is_available(), "the backbone source is off with no URL")
+	var refused: DotResult = await off.fetch()
 	_check(
 		not refused.ok and refused.code() == DotError.CODE_STATE,
 		"and says so rather than producing an empty list that looks like no servers"
 	)
 
-	var base := DotBrowserSource.new()
-	var unimplemented: DotResult = await base.fetch()
-	_check(not unimplemented.ok, "the base source fetches nothing")
+	var bad := DotBrowserBackboneConfig.new()
+	bad.backbone_url = "example.com"
+	_check(not bad.validate().ok, "a URL with no scheme is refused at load")
+
+	var fake := FakeListing.new()
+	fake.pages = [
+		{
+			"data": [
+				{"id": 3, "host": "203.0.113.7", "port": 6060, "queryPort": null,
+					"protocols": ["A2S"], "app": {"id": 70, "url": "arena"}},
+				{"id": 2, "host": "play.example.com", "port": 6061, "queryPort": 27016},
+				{"id": 1, "host": "", "port": 6062},
+				{"id": 0, "host": "203.0.113.8", "port": null},
+			],
+			"pagination": {"page": 1, "limit": 4, "total": 6, "totalPages": 2},
+		},
+		{
+			"data": [
+				{"id": 9, "host": "203.0.113.7", "port": 6060},
+				{"id": 8, "ip": "198.51.100.1", "port": 27015, "query_port": 27015},
+			],
+			"pagination": {"page": 2, "limit": 4, "total": 6, "totalPages": 2},
+		},
+	]
+
+	var source := DotBrowserSourceBackbone.for_site("http://site.test/", "arena")
+	source.http = fake
+	_check(source.is_available(), "a URL turns it on")
+
+	var got: DotResult = await source.fetch()
+	_check(got.ok, "a two-page listing is read")
+	var targets: Array = got.value if got.ok else []
+	_check(fake.urls.size() == 2, "following the pagination to the last page")
+	_check(
+		fake.urls.size() > 0
+			and fake.urls[0] == "http://site.test/api/content/server/list?app=arena&limit=200&page=1",
+		"asking for one game's servers on the site's path"
+	)
+	_check(targets.size() == 3, "rows with no host or no port are skipped, a repeat is one row")
+	_check(
+		targets.size() == 3
+			and (targets[0] as DotBrowserTarget).address == "203.0.113.7"
+			and (targets[0] as DotBrowserTarget).port == 6060
+			and (targets[0] as DotBrowserTarget).query_port == 0,
+		"a null queryPort means ask on the game port"
+	)
+	_check(
+		targets.size() == 3 and (targets[1] as DotBrowserTarget).query_port == 27016,
+		"a separate query port is kept"
+	)
+	_check(
+		targets.size() == 3
+			and (targets[2] as DotBrowserTarget).address == "198.51.100.1"
+			and (targets[2] as DotBrowserTarget).query_port == 0,
+		"a community listing's looser shape still reads"
+	)
+	_check(
+		targets.size() == 3 and (targets[0] as DotBrowserTarget).source == &"backbone",
+		"and every target is stamped with the backbone source"
+	)
+
+	var capped := DotBrowserSourceBackbone.for_site("http://site.test", "arena")
+	capped.config.max_pages = 1
+	var capped_fake := FakeListing.new()
+	capped_fake.pages = fake.pages
+	capped.http = capped_fake
+	var one_page: DotResult = await capped.fetch()
+	_check(
+		one_page.ok and capped_fake.urls.size() == 1 and (one_page.value as Array).size() == 2,
+		"max_pages caps how much of a long listing is read"
+	)
+
+	var failing := DotBrowserSourceBackbone.for_site("http://site.test", "nope")
+	var failing_fake := FakeListing.new()
+	failing_fake.fail_with = 404
+	failing.http = failing_fake
+	var failed: DotResult = await failing.fetch()
+	_check(
+		not failed.ok and failed.code() == DotError.CODE_HTTP,
+		"a site that refuses the game is a failure, not an empty list"
+	)
+
+	var browser := DotBrowser.new()
+	browser.register_as = &""
+	browser.favourites_path = "user://dot_browser_selftest/backbone.json"
+	add_child(browser)
+	var attached := DotBrowserSourceBackbone.for_site("http://127.0.0.1:9", "arena")
+	browser.add_source(attached)
+	_check(
+		attached._http() is DotHttp and (attached._http() as Node).get_parent() == browser,
+		"added to a browser, it puts its own HTTP node under it"
+	)
+	browser.queue_free()
 
 
 # --- Over a real socket ----------------------------------------------------
@@ -699,6 +814,22 @@ func _test_over_a_socket() -> void:
 	_check(entry.players == 3 and entry.bots == 1, "with its counts")
 	_check(entry.ping_ms >= 0, "and a measured ping")
 	_check(entry.answered_with == "dqp", "over DQP")
+
+	# A listing hands out names as well as IPs, and a UDP socket takes only an IP.
+	var named := DotBrowserTarget.make("localhost", server.port)
+	named.protocol = DotBrowserTarget.Protocol.DQP
+	var by_name: DotResult = await browser.query(named)
+	_check(
+		by_name.ok and (by_name.value as DotBrowserEntry).is_online(),
+		"a server listed by name is looked up and asked"
+	)
+	var nowhere := DotBrowserTarget.make("no-such-host.invalid", server.port)
+	nowhere.protocol = DotBrowserTarget.Protocol.DQP
+	var unresolved: DotResult = await browser.query(nowhere)
+	_check(
+		unresolved.ok and not (unresolved.value as DotBrowserEntry).is_online(),
+		"and a name that does not resolve is an offline row, not a script error"
+	)
 
 	# The second refresh sends the revision the entry already holds. A server with
 	# nothing new answers in forty bytes; the point of the check is that the client

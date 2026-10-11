@@ -54,6 +54,19 @@ func source_name() -> StringName:
 	return _source_name()
 
 
+## Called by [method DotBrowser.add_source] with the browser the source now belongs to.
+##
+## A source is a [RefCounted] and cannot hold a node, but one that talks HTTP needs an
+## [HTTPRequest] in the tree; this is where it learns where to put one. Override
+## [method _attached]; the default does nothing.
+func attached(browser: Node) -> void:
+	_attached(browser)
+
+
+func _attached(_browser: Node) -> void:
+	pass
+
+
 ## Fetches and stamps every target with this source's name.
 ##
 ## The stamping happens here rather than in each subclass because a subclass that

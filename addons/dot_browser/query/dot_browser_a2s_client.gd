@@ -53,8 +53,19 @@ func begin() -> DotResult:
 	if target == null or target.address == "":
 		return _finish(DotResult.fail(DotError.CODE_INVALID, "No address to query."))
 
+	# A name is looked up first; see DotBrowserQuery's "Name lookup".
+	var looked := lookup_begin()
+	if not looked.ok:
+		return _finish(looked)
+	if str(looked.value) == "":
+		return DotResult.success(self)
+
+	return _open(str(looked.value))
+
+
+func _open(ip: String) -> DotResult:
 	_socket = PacketPeerUDP.new()
-	var err := _socket.connect_to_host(target.address, target.effective_query_port())
+	var err := _socket.connect_to_host(ip, target.effective_query_port())
 	if err != OK:
 		return _finish(DotResult.failure(
 			DotError.from_engine(err, "could not open a socket to %s" % target.key())
@@ -69,6 +80,15 @@ func begin() -> DotResult:
 func poll(now_ms: int) -> bool:
 	if state == State.DONE:
 		return true
+	if lookup_pending():
+		var looked := lookup_poll(now_ms)
+		if not looked.ok:
+			_finish(looked)
+			return true
+		if str(looked.value) == "":
+			return false
+		_open(str(looked.value))
+		return state == State.DONE
 	if state == State.IDLE or _socket == null:
 		return false
 
@@ -101,6 +121,7 @@ func poll(now_ms: int) -> bool:
 
 
 func close() -> void:
+	lookup_cancel()
 	if _socket != null:
 		_socket.close()
 		_socket = null

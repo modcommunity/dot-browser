@@ -159,6 +159,7 @@ func add_source(source: DotBrowserSource) -> void:
 	if source == null:
 		return
 	_sources.append(source)
+	source.attached(self)
 
 
 func remove_source(source: DotBrowserSource) -> void:

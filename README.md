@@ -62,7 +62,7 @@ A browser knows how to ask a server what it is. It has no idea which servers exi
 | | |
 | --- | --- |
 | `DotBrowserSourceList` | Addresses typed in, or a JSON file you ship. |
-| `DotBrowserSourceBackbone` | A community's listing on the TMC backbone, read through a duck-typed client. |
+| `DotBrowserSourceBackbone` | A site's server listing (website-city's `GET /api/content/server/list`), read anonymously over HTTP. Off until `DotBrowserBackboneConfig.backbone_url` is set (`--browser-backbone-url`, `DOT_BROWSER_BACKBONE_URL`). |
 | your own | Subclass `DotBrowserSource` and return targets. |
 
 A source produces **addresses**, never player counts. What a server is, is what the server says when asked. A listing that has not heard from a server in ten minutes still lists it, and the player clicking it wants to know that before they connect.

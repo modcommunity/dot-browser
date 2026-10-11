@@ -25,8 +25,9 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first.
 | `query/dot_browser_a2s.gd`, `_a2s_client.gd` | `DotBrowserA2s` (`parse_info` subtracts bots), `DotBrowserA2sClient` |
 | `runtime/dot_browser.gd` | `DotBrowser`: the node; `concurrency`, refresh, sorting |
 | `runtime/dot_browser_favourites.gd` | favourites and history on disk |
-| `sources/` | `DotBrowserSource`, `DotBrowserSourceList`, `DotBrowserSourceBackbone` |
+| `sources/` | `DotBrowserSource` (`attached(browser)` hook), `DotBrowserSourceList`, `DotBrowserSourceBackbone` + `DotBrowserBackboneConfig` (website-city's `/api/content/server/list`, anonymous HTTP, off with no URL) |
 | `examples/browser_selftest.tscn` | the suite; its last section runs the browser against a DQP server on the loopback |
+| `examples/backbone_listing.tscn` | the round trip against a real site: reads the listing, queries every row; `--expect=host:port` |
 
 Paths except `examples/` are in `addons/dot_browser/`.
 
@@ -43,10 +44,8 @@ The family's two steps ([game-dev/CLAUDE.md](../../CLAUDE.md#validating-anything
 - Identity is the game port; a timeout keeps the old counts; unmeasured ping is -1 and sorts last; every sort has a stable tie-break; `unchanged` applies nothing. [design](docs/design.md#decisions-that-look-arbitrary-and-are-not)
 - AUTO falls back to A2S on a timeout or parse failure, never on a refusal, and picks WebSocket from `DotPlatform.has_udp()`. [design](docs/design.md#where-it-runs)
 - Never upgrade `ws://` to `wss://` from `is_secure_context()`. [design](docs/design.md#where-it-runs)
-- Discard every field a listing carries; ask the server. [design](docs/design.md#sources-and-the-listing-nobody-publishes-yet)
-
-## Open
-
-- **`DotBrowserSourceBackbone` has nothing to read.** Its default `path`, `/api/content/server/list`, has no route on website-city main, and nothing else publishes a server listing for it. Not built yet on the site side; game-hungario's browser ships without it for that reason.
+- Discard every field a listing carries; ask the server. [design](docs/design.md#sources-and-the-sites-listing)
+- The backbone source is anonymous HTTP, never dot-auth's client (it prefixes the integration path and sends a server token). [design](docs/design.md#sources-and-the-sites-listing)
+- A UDP socket takes only an IP: the UDP clients resolve a name first (`lookup_begin`/`lookup_poll`, IPv4 preferred); an override of `close()` calls `lookup_cancel()`. [design](docs/design.md#sources-and-the-sites-listing)
 
 Deliberately not here: a window, a master server, LAN discovery, connecting. [design](docs/design.md#deliberately-not-here)

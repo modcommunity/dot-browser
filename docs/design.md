@@ -44,15 +44,23 @@ Here a query is an object with `poll(now_ms)`, `DotBrowser` pumps them in `_proc
 
 `DotBrowserWsClient` does not upgrade `ws://` to `wss://` on a secure page. `DotWeb.is_secure_context()` is not "the page is HTTPS" (a browser treats `http://localhost` as a trustworthy origin), and dot-core's transport once upgraded every development page's socket and failed against a server with no certificate. The scheme is the caller's.
 
-## Sources, and the listing nobody publishes yet
+## Sources, and the site's listing
 
-A `DotBrowserSource` produces addresses. `DotBrowserSourceList` is a fixed list; `DotBrowserSourceBackbone` reads a site listing through a duck-typed client with `get_integration(path, query)` (dot-auth's `DotBackboneClient` in practice), so a browser never needs dot-auth to parse. Its default `path` is `/api/content/server/list`, and website-city has no route there: nothing yet publishes the listing it reads (see [CLAUDE.md](../CLAUDE.md#open)).
+A `DotBrowserSource` produces addresses. `DotBrowserSourceList` is a fixed list; `DotBrowserSourceBackbone` reads website-city's `GET /api/content/server/list` (contract: website-city `docs/api/public-content-api.md#the-server-listing`): `data` rows of `host`, `port`, `queryPort`, `protocols`, `app`, paged by `pagination.totalPages`, filtered to one game by `?app=<slug>`. It also reads the looser shapes a community's own listing might send (a bare array, `servers`, `ip`/`address`, `query_port`).
+
+It is anonymous, over dot-core's `DotHttp`, and never goes through dot-auth. The first version took a duck-typed dot-auth `DotBackboneClient` and called `get_integration(path)`, which could not have worked: that client prefixes every path with `/api/integration/v1/` and sends a server's integration token, which a player's game does not have. The listing is public, so nothing is needed but an origin.
+
+Configuration is `DotBrowserBackboneConfig` (`--browser-*`, `DOT_BROWSER_*`), and an empty `backbone_url` turns the source off: a browser that reaches out to a website as it opens is a surprise in a LAN build or a test. `max_pages` caps how much of a long listing one refresh reads, because every row is a packet the browser sends next. The source is a `RefCounted` and HTTP needs a node in the tree, so `DotBrowser.add_source` calls `DotBrowserSource.attached(browser)` and the source puts its own `DotHttp` under the browser unless `http` was assigned.
 
 Every field a source carries about a server is discarded and asked of the server directly. A listing is a place to find servers, not a source of truth about what they are doing: a site that has not heard from a server in ten minutes still lists it.
+
+A listing hands out names as well as IPs (a server whose team addresses it by hostname is listed by that name), and `PacketPeerUDP.connect_to_host` takes only an IP. So the UDP clients look a name up first through the engine's threaded resolver (`DotBrowserQuery.lookup_begin` / `lookup_poll`), preferring an IPv4 answer, and a name that does not resolve is an offline row. Before this, every hostname-listed server showed as refused, with an "Invalid IP address" engine error per row.
+
+`examples/backbone_listing.tscn` is the round trip against a real site: `-- --browser-backbone-url=http://127.0.0.1:3002 --browser-app=hungario --expect=127.0.0.1:27081` reads the listing, queries every row, and exits 0 only if the expected server was listed and answered.
 
 ## Deliberately not here
 
 - **A window.** No scene, no table, no theme. `DotBrowserEntry.describe()` gives you a row and dot-ui gives you somewhere to put it.
-- **A master server.** Nothing announces itself to a list, and the site listing above does not exist yet. That is the other half of the gap and it is not in this addon.
+- **A master server.** Nothing announces itself to a list here. The site listing above is the nearest thing, and a server reaches it by being listed on the site, not by anything in this addon.
 - **LAN discovery.** DQP has no broadcast form, and a subnet sweep is a different thing with different consequences. A `DotBrowserSource` that sweeps is twenty lines and belongs to whoever wants it.
 - **Connecting.** A browser produces an address. What a game does with one is dot-server's client link, and pretending otherwise would put a transport in here.
