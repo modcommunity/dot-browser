@@ -1,0 +1,6 @@
+# size
+# Baselines only shrink: scripts/<gate> --update lowers or drops entries and refuses to add.
+examples/browser_selftest.gd	1017
+examples/browser_selftest.gd::_test_backbone	107
+examples/browser_selftest.gd::_test_filter	86
+examples/browser_selftest.gd::_test_over_a_socket	99

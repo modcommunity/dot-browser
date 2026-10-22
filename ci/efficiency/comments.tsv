@@ -1,0 +1,25 @@
+# comments
+# Baselines only shrink: scripts/<gate> --update lowers or drops entries and refuses to add.
+addons/dot_browser/core/dot_browser_entry.gd::long_block	4
+addons/dot_browser/core/dot_browser_filter.gd::long_block	4
+addons/dot_browser/core/dot_browser_target.gd::long_block	5
+addons/dot_browser/dot_browser_plugin.gd::long_block	1
+addons/dot_browser/query/dot_browser_a2s.gd::banner	1
+addons/dot_browser/query/dot_browser_a2s.gd::long_block	6
+addons/dot_browser/query/dot_browser_a2s_client.gd::long_block	1
+addons/dot_browser/query/dot_browser_dqp.gd::long_block	6
+addons/dot_browser/query/dot_browser_dqp_client.gd::long_block	3
+addons/dot_browser/query/dot_browser_query.gd::banner	1
+addons/dot_browser/query/dot_browser_query.gd::long_block	6
+addons/dot_browser/query/dot_browser_ws_client.gd::long_block	1
+addons/dot_browser/runtime/dot_browser.gd::banner	4
+addons/dot_browser/runtime/dot_browser.gd::long_block	9
+addons/dot_browser/runtime/dot_browser_favourites.gd::long_block	5
+addons/dot_browser/sources/dot_browser_backbone_config.gd::long_block	2
+addons/dot_browser/sources/dot_browser_source.gd::long_block	5
+addons/dot_browser/sources/dot_browser_source_backbone.gd::long_block	2
+addons/dot_browser/sources/dot_browser_source_list.gd::long_block	2
+examples/backbone_listing.gd::long_block	1
+examples/browser_selftest.gd::banner	7
+examples/browser_selftest.gd::history	1
+examples/browser_selftest.gd::long_block	4
