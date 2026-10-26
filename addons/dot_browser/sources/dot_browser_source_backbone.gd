@@ -43,7 +43,7 @@ var _owned_http: DotHttp = null
 ## A source for one game on one site. [param app] is the site's app URL slug.
 static func for_site(base_url: String, app: String = "") -> DotBrowserSourceBackbone:
 	# `new()`, never this class's own name: a script that names itself in an expression
-	# leaks every script at exit on 4.7.2 (game-dev docs/gdscript-hazards.md).
+	# leaks every script at exit on 4.7.2 (~/docs/gdscript-hazards.md).
 	var out := new()
 	out.config.backbone_url = base_url
 	out.config.app = app
