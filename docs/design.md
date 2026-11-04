@@ -30,6 +30,7 @@ Here a query is an object with `poll(now_ms)`, `DotBrowser` pumps them in `_proc
 - **Identity is the game port, not the query port.** A query port that moves must not create a second row a player thinks is a new server.
 - **A timeout does not zero the player counts.** A row that flickers to zero on one dropped datagram is a row nobody trusts; a stale count beside an "offline" marker is more honest than a fresh zero.
 - **An unmeasured ping is -1 and sorts last.** Reading it as zero puts every server nobody has reached above every server somebody has.
+- **`Sort.BEST` is `DotBrowserScore`, the one ranking site and Quick Play share.** Ping, fill (busy but not full beats empty and packed), friends present and official, weighted in constants; a full server or one the party does not fit in scores -1 and ranks last. Friends and official come from the caller (`friend_counts`, `official_keys`), because the entry cannot know them. It is appended to the enum and is not the default yet.
 - **Every sort has one stable tie-break.** Without it two servers with equal ping swap places on every refresh and the row a player is about to click moves.
 - **An `unchanged` response applies nothing.** It carries a revision and no sections; applying it as a full one would blank every field, which is the failure a conditional refresh exists to avoid.
 - **The AUTO fallback to A2S runs on a timeout or a parse failure, never on a refusal.** A server that answered DQP with an error understood the question.

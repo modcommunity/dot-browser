@@ -16,6 +16,7 @@ enum Sort {
 	NAME,
 	MAP,
 	SLOTS_FREE,    ## Most room first.
+	BEST,          ## [DotBrowserScore]; appended so saved values keep their meaning.
 }
 
 @export_group("Text")
@@ -75,6 +76,15 @@ enum Sort {
 ## four at the top *and* the rest in their chosen order, and a "favourites" sort would
 ## leave the other two hundred in whatever order they arrived.
 @export var favourites_first: bool = true
+
+## Seats [constant Sort.BEST] needs free; a server with fewer ranks last.
+@export_range(1, 64, 1) var party_size: int = 1
+
+## Entry key to the number of friends on it, set by the caller for [constant Sort.BEST].
+var friend_counts: Dictionary = {}
+
+## Entry keys that are official or verified, set by the caller for [constant Sort.BEST].
+var official_keys: Dictionary = {}
 
 
 func matches(entry: DotBrowserEntry, is_favourite: bool = false) -> bool:
@@ -164,6 +174,11 @@ func apply_sort(entries: Array[DotBrowserEntry], favourites: Dictionary = {}) ->
 				var pb := b.ping_ms if b.ping_ms >= 0 else 1 << 30
 				if pa != pb:
 					return pa < pb
+			Sort.BEST:
+				var sa := _best(a)
+				var sb := _best(b)
+				if not is_equal_approx(sa, sb):
+					return sa > sb
 			Sort.PLAYERS:
 				if a.players != b.players:
 					return a.players > b.players
@@ -187,8 +202,12 @@ func apply_sort(entries: Array[DotBrowserEntry], favourites: Dictionary = {}) ->
 	)
 
 
+func _best(entry: DotBrowserEntry) -> float:
+	return DotBrowserScore.score(entry, int(friend_counts.get(entry.key(), 0)), party_size, official_keys.has(entry.key()))
+
+
 func sort_name() -> String:
-	return ["ping", "players", "players_asc", "name", "map", "slots_free"][int(sort)]
+	return ["ping", "players", "players_asc", "name", "map", "slots_free", "best"][int(sort)]
 
 
 func describe() -> String:

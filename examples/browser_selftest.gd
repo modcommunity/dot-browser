@@ -26,7 +26,7 @@ extends Node
 ## [/codeblock]
 
 const SECTIONS := 11
-const CHECKS := 128
+const CHECKS := 133
 
 ## Produced by dot-server's DotQueryProtocol.build_request(TYPE_QUERY, 7,
 ## 0x0123456789abcdef, {"sections": ["info"]}, true).
@@ -558,6 +558,29 @@ func _test_filter() -> void:
 	var first := tied[0].name
 	filter.apply_sort(tied)
 	_check(tied[0].name == first, "a tie breaks the same way every time")
+
+	# Best: busy-but-not-full and near beats empty and far; a party that does not fit ranks last.
+	var best: Array[DotBrowserEntry] = [
+		_row("e", 1, "Empty", "m", 0, 16, 20, []),
+		_row("f", 1, "Full", "m", 16, 16, 20, []),
+		_row("g", 1, "Good", "m", 10, 16, 40, []),
+		_row("h", 1, "Far", "m", 10, 16, 250, []),
+		_row("i", 1, "Tight", "m", 15, 16, 20, []),
+	]
+	filter.sort = DotBrowserFilter.Sort.BEST
+	filter.apply_sort(best)
+	_check(best[0].name == "Good", "best puts a busy, near server first")
+	_check(best[best.size() - 1].name == "Full", "best puts a full server last")
+	filter.party_size = 3
+	filter.apply_sort(best)
+	_check(best.find(best.filter(func(e): return e.name == "Tight")[0]) >= best.size() - 2, "a server the party does not fit in ranks with the full ones")
+	filter.party_size = 1
+	filter.friend_counts = {"h:1": 2}
+	filter.apply_sort(best)
+	_check(best[0].name == "Far" or best[0].name == "Good", "friends raise a server")
+	_check(DotBrowserScore.score(_row("u", 1, "U", "m", 5, 16, -1, [])) > 0.0, "an unmeasured ping still scores")
+	filter.friend_counts = {}
+	filter.sort = DotBrowserFilter.Sort.PING
 
 
 func _test_favourites() -> void:
