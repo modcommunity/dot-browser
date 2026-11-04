@@ -176,10 +176,7 @@ func _test_golden_bytes() -> void:
 	var query := DotBrowserDqp.build_request(
 		DotBrowserDqp.TYPE_QUERY, 7, TEST_COOKIE, {"sections": ["info"]}, true
 	)
-	_check(
-		_hex(query) == GOLDEN_QUERY,
-		"a query request is byte-identical to the one dot-server builds"
-	)
+	_check(_hex(query) == GOLDEN_QUERY, "a query request is byte-identical to the one dot-server builds")
 
 	var ping := DotBrowserDqp.build_request(
 		DotBrowserDqp.TYPE_PING, 1, 0, {}, false
@@ -199,10 +196,7 @@ func _test_golden_bytes() -> void:
 	_check(int(body.get("rev", 0)) == 42, "and its JSON body comes out")
 
 	var request_reply := DotBrowserDqp.parse(query)
-	_check(
-		not request_reply.ok,
-		"a request arriving where a response was expected is refused, not answered"
-	)
+	_check(not request_reply.ok, "a request arriving where a response was expected is refused, not answered")
 
 	var junk := DotBrowserDqp.parse("hello".to_utf8_buffer())
 	_check(not junk.ok and junk.code() == DotError.CODE_PARSE, "junk is not DQP")
@@ -219,10 +213,7 @@ func _test_dqp_fragments() -> void:
 	var shuffled: Array = [fragments[2], fragments[0], fragments[1]]
 	var joined := DotBrowserDqp.reassemble(shuffled)
 	_check(joined.ok, "they reassemble in any order")
-	_check(
-		int((joined.value as Dictionary).get("rev", 0)) == 1,
-		"into the body that was sent"
-	)
+	_check(int((joined.value as Dictionary).get("rev", 0)) == 1, "into the body that was sent")
 
 	# A querier refreshing two hundred servers has one socket receiving two hundred
 	# replies. A fragment of another response must be discarded, not blended: the
@@ -232,17 +223,11 @@ func _test_dqp_fragments() -> void:
 	)[0]
 	var polluted: Array = [fragments[0], foreign, fragments[1]]
 	var refused := DotBrowserDqp.reassemble(polluted)
-	_check(
-		not refused.ok,
-		"a fragment from another response is discarded rather than stitched in"
-	)
+	_check(not refused.ok, "a fragment from another response is discarded rather than stitched in")
 
 	var short: Array = [fragments[0], fragments[1]]
 	var incomplete := DotBrowserDqp.reassemble(short)
-	_check(
-		not incomplete.ok and incomplete.code() == DotError.CODE_TIMEOUT,
-		"a missing fragment is a timeout, not a truncated body"
-	)
+	_check(not incomplete.ok and incomplete.code() == DotError.CODE_TIMEOUT, "a missing fragment is a timeout, not a truncated body")
 
 	var packed := payload.compress(FileAccess.COMPRESSION_GZIP)
 	var gzipped := _fragment(packed, 55, DotBrowserDqp.FLAG_GZIP)
@@ -256,10 +241,7 @@ func _test_dqp_fragments() -> void:
 	# on purpose has to be labelled or it costs somebody an afternoon.
 	var lying := _fragment("not gzip at all".to_utf8_buffer(), 56, DotBrowserDqp.FLAG_GZIP)
 	var failed := DotBrowserDqp.reassemble(lying)
-	_check(
-		not failed.ok,
-		"a payload that claims gzip and is not fails rather than producing garbage"
-	)
+	_check(not failed.ok, "a payload that claims gzip and is not fails rather than producing garbage")
 
 
 # --- A2S -------------------------------------------------------------------
@@ -278,10 +260,7 @@ func _test_a2s_info() -> void:
 	# The trap. A2S's player byte is humans + bots and has always been; a browser
 	# that shows it shows a server with four bots and eight people as twelve
 	# players, and the player who joins finds eight.
-	_check(
-		int(info["players"]) == 8,
-		"the bot count is subtracted: A2S reports humans plus bots in one byte"
-	)
+	_check(int(info["players"]) == 8, "the bot count is subtracted: A2S reports humans plus bots in one byte")
 	_check(int(info["bots"]) == 4, "and the bots are reported separately")
 	_check(int(info["max_players"]) == 32, "the maximum is what it said")
 
@@ -291,37 +270,22 @@ func _test_a2s_info() -> void:
 	_check(int(info["port"]) == 27015, "the game port comes out of the extra data")
 
 	var tags: PackedStringArray = info["tags"]
-	_check(
-		tags.size() == 2 and tags.has("dev") and tags.has("eu"),
-		"keywords split into tags"
-	)
-	_check(
-		int(info.get("dqp_port", 0)) == 27019,
-		"and a dot server's richer protocol is found in the one extensible field"
-	)
+	_check(tags.size() == 2 and tags.has("dev") and tags.has("eu"), "keywords split into tags")
+	_check(int(info.get("dqp_port", 0)) == 27019, "and a dot server's richer protocol is found in the one extensible field")
 
 	var impossible := _a2s_info(2, 32, 9, "")
 	var clamped: Dictionary = DotBrowserA2s.parse_info(impossible).value
-	_check(
-		int(clamped["players"]) == 0,
-		"more bots than players clamps at zero rather than going negative"
-	)
+	_check(int(clamped["players"]) == 0, "more bots than players clamps at zero rather than going negative")
 
 	# A response that ends early must fail rather than hand back a plausible value
 	# for the field after the overrun. dot-net shipped a reader whose exhaustion was
 	# not sticky and that is exactly what it did.
 	var truncated := data.slice(0, 20)
 	var short := DotBrowserA2s.parse_info(truncated)
-	_check(
-		not short.ok,
-		"a response that ends early is refused, not read past"
-	)
+	_check(not short.ok, "a response that ends early is refused, not read past")
 
 	var wrong := PackedByteArray([0xFF, 0xFF, 0xFF, 0xFF, 0x44])
-	_check(
-		not DotBrowserA2s.parse_info(wrong).ok,
-		"a response of the wrong type is refused"
-	)
+	_check(not DotBrowserA2s.parse_info(wrong).ok, "a response of the wrong type is refused")
 
 
 func _test_a2s_split() -> void:
@@ -333,17 +297,11 @@ func _test_a2s_split() -> void:
 	var shuffled: Array = [packets[1], packets[2], packets[0]]
 	var joined := DotBrowserA2s.reassemble_split(shuffled)
 	_check(joined.ok, "split packets reassemble in any order")
-	_check(
-		_hex(joined.value) == _hex(whole),
-		"into exactly the single packet that was split, header included"
-	)
+	_check(_hex(joined.value) == _hex(whole), "into exactly the single packet that was split, header included")
 
 	var foreign: PackedByteArray = _a2s_split(whole, 9999, 3)[1]
 	var polluted: Array = [packets[0], foreign, packets[2]]
-	_check(
-		not DotBrowserA2s.reassemble_split(polluted).ok,
-		"a packet from another split response is discarded"
-	)
+	_check(not DotBrowserA2s.reassemble_split(polluted).ok, "a packet from another split response is discarded")
 
 	var parsed := DotBrowserA2s.parse_info(joined.value)
 	_check(parsed.ok, "and the reassembled bytes parse as info")
@@ -360,10 +318,7 @@ func _test_targets() -> void:
 	_check(t.address == "example.com" and t.port == 27016, "into a host and a port")
 
 	var bare := DotBrowserTarget.parse("example.com")
-	_check(
-		(bare.value as DotBrowserTarget).port == 27015,
-		"a bare host takes the default port"
-	)
+	_check((bare.value as DotBrowserTarget).port == 27015, "a bare host takes the default port")
 
 	# Splitting on the last colon turns `[::1]:27015` into a host of `[` unless the
 	# brackets are handled first, and splitting on the first turns every IPv6 address
@@ -375,10 +330,7 @@ func _test_targets() -> void:
 	_check(t6.join_address() == "[::1]:27015", "and goes back into brackets to connect")
 
 	var loose := DotBrowserTarget.parse("fe80::1")
-	_check(
-		(loose.value as DotBrowserTarget).address == "fe80::1",
-		"an unbracketed IPv6 address is not mistaken for a port"
-	)
+	_check((loose.value as DotBrowserTarget).address == "fe80::1", "an unbracketed IPv6 address is not mistaken for a port")
 
 	_check(not DotBrowserTarget.parse("").ok, "nothing is not an address")
 	_check(not DotBrowserTarget.parse("host:99999").ok, "and that is not a port")
@@ -386,17 +338,11 @@ func _test_targets() -> void:
 	var moved := DotBrowserTarget.make("h", 27015)
 	moved.query_port = 27019
 	_check(moved.effective_query_port() == 27019, "a query port overrides the game port")
-	_check(
-		moved.key() == "h:27015",
-		"but identity is the game port: a moved query port must not make a second row"
-	)
+	_check(moved.key() == "h:27015", "but identity is the game port: a moved query port must not make a second row")
 
 	var round_trip := DotBrowserTarget.from_dictionary(moved.to_dictionary())
 	_check(round_trip.ok, "a target round-trips through its dictionary")
-	_check(
-		(round_trip.value as DotBrowserTarget).query_port == 27019,
-		"with the query port intact"
-	)
+	_check((round_trip.value as DotBrowserTarget).query_port == 27019, "with the query port intact")
 
 	_check(
 		not DotBrowserTarget.from_dictionary(
@@ -441,10 +387,7 @@ func _test_entries() -> void:
 	# it were a full one would blank every field — which is the exact failure a
 	# conditional refresh exists to avoid.
 	entry.apply_dqp({"rev": 12, "unchanged": true})
-	_check(
-		entry.name == "A dot server" and entry.players == 8,
-		"an unchanged response leaves every field alone"
-	)
+	_check(entry.name == "A dot server" and entry.players == 8, "an unchanged response leaves every field alone")
 
 	var name := entry.name
 	var players := entry.players
@@ -459,17 +402,11 @@ func _test_entries() -> void:
 
 	var long := DotBrowserEntry.of(DotBrowserTarget.make("h", 1))
 	long.apply_dqp({"sections": {"info": {"name": "x".repeat(9000)}}})
-	_check(
-		long.name.length() <= DotBrowserEntry.MAX_TEXT,
-		"a hostname from a stranger is capped on the way in"
-	)
+	_check(long.name.length() <= DotBrowserEntry.MAX_TEXT, "a hostname from a stranger is capped on the way in")
 
 	var saved := DotBrowserEntry.from_dictionary(entry.to_dictionary())
 	_check(saved.ok, "an entry round-trips through its saved form")
-	_check(
-		(saved.value as DotBrowserEntry).key() == entry.key(),
-		"keeping its identity"
-	)
+	_check((saved.value as DotBrowserEntry).key() == entry.key(), "keeping its identity")
 
 
 func _test_filter() -> void:
@@ -508,31 +445,19 @@ func _test_filter() -> void:
 
 	filter.text = ""
 	filter.tags_all = PackedStringArray(["eu", "hard"])
-	_check(
-		filter.matches(rows[1]) and not filter.matches(rows[0]),
-		"tags_all needs every tag"
-	)
+	_check(filter.matches(rows[1]) and not filter.matches(rows[0]), "tags_all needs every tag")
 
 	filter.tags_all = PackedStringArray()
 	filter.max_ping = 50
 	_check(not filter.matches(rows[1]), "a ping ceiling excludes a distant server")
-	_check(
-		filter.matches(never),
-		"and does not exclude one whose ping was never measured"
-	)
+	_check(filter.matches(never), "and does not exclude one whose ping was never measured")
 
 	filter.max_ping = 0
 	filter.sort = DotBrowserFilter.Sort.PING
 	var ordered := rows.duplicate()
 	filter.apply_sort(ordered)
-	_check(
-		ordered[0].name == "Cosmo",
-		"sorting by ping puts the nearest first"
-	)
-	_check(
-		ordered[ordered.size() - 1].name == "Delta",
-		"and an unmeasured ping last, not first: -1 is not 'faster than everything'"
-	)
+	_check(ordered[0].name == "Cosmo", "sorting by ping puts the nearest first")
+	_check(ordered[ordered.size() - 1].name == "Delta", "and an unmeasured ping last, not first: -1 is not 'faster than everything'")
 
 	filter.sort = DotBrowserFilter.Sort.PLAYERS
 	var busiest := rows.duplicate()
@@ -541,10 +466,7 @@ func _test_filter() -> void:
 
 	var favourites := {"c:27003": true}
 	filter.apply_sort(busiest, favourites)
-	_check(
-		busiest[0].name == "Cosmo",
-		"favourites float to the top without disturbing the rest of the order"
-	)
+	_check(busiest[0].name == "Cosmo", "favourites float to the top without disturbing the rest of the order")
 	_check(busiest[1].name == "Bravo", "which is still by players")
 
 	# Two servers with the same ping must not swap places on every refresh, or the
@@ -558,7 +480,11 @@ func _test_filter() -> void:
 	var first := tied[0].name
 	filter.apply_sort(tied)
 	_check(tied[0].name == first, "a tie breaks the same way every time")
+	_test_best_sort(filter)
 
+
+## Best ranking: [DotBrowserScore] through the filter's BEST sort.
+func _test_best_sort(filter: DotBrowserFilter) -> void:
 	# Best: busy-but-not-full and near beats empty and far; a party that does not fit ranks last.
 	var best: Array[DotBrowserEntry] = [
 		_row("e", 1, "Empty", "m", 0, 16, 20, []),
@@ -600,29 +526,17 @@ func _test_favourites() -> void:
 	var reloaded := DotBrowserFavourites.new(path)
 	_check(reloaded.load_from_disk().ok, "the file reads back")
 	_check(reloaded.has("h:27015"), "with the favourite in it")
-	_check(
-		(reloaded.entries()[0] as DotBrowserEntry).name == "Home",
-		"and the name it was saved with"
-	)
+	_check((reloaded.entries()[0] as DotBrowserEntry).name == "Home", "and the name it was saved with")
 
 	reloaded.note_visit(entry)
 	reloaded.note_visit(_row("i", 27016, "Away", "dm_two", 1, 8, 30, []))
 	reloaded.note_visit(entry)
-	_check(
-		reloaded.history().size() == 2,
-		"visiting the same server twice moves it rather than adding it again"
-	)
-	_check(
-		(reloaded.history()[0] as DotBrowserEntry).name == "Home",
-		"and the most recent is first"
-	)
+	_check(reloaded.history().size() == 2, "visiting the same server twice moves it rather than adding it again")
+	_check((reloaded.history()[0] as DotBrowserEntry).name == "Home", "and the most recent is first")
 
 	for i in DotBrowserFavourites.MAX_HISTORY + 10:
 		reloaded.note_visit(_row("p%d" % i, 1000 + i, "S%d" % i, "m", 0, 8, 10, []))
-	_check(
-		reloaded.history().size() == DotBrowserFavourites.MAX_HISTORY,
-		"history is capped"
-	)
+	_check(reloaded.history().size() == DotBrowserFavourites.MAX_HISTORY, "history is capped")
 	_check(reloaded.has("h:27015"), "and capping history does not touch a favourite")
 
 	reloaded.remove("h:27015")
@@ -641,10 +555,7 @@ func _test_sources() -> void:
 
 	var targets: Array = res.value
 	_check(targets.size() == 2, "and only the good ones")
-	_check(
-		(targets[0] as DotBrowserTarget).source == &"list",
-		"every target is stamped with the source that produced it"
-	)
+	_check((targets[0] as DotBrowserTarget).source == &"list", "every target is stamped with the source that produced it")
 
 	var file_path := "user://dot_browser_selftest/list.json"
 	DotPaths.write_json(file_path, [
@@ -657,10 +568,7 @@ func _test_sources() -> void:
 	_check(loaded.ok, "a list file loads")
 	var rows: Array = loaded.value
 	_check(rows.size() == 2, "both forms of entry")
-	_check(
-		(rows[1] as DotBrowserTarget).query_port == 27019,
-		"including the object form's query port"
-	)
+	_check((rows[1] as DotBrowserTarget).query_port == 27019, "including the object form's query port")
 
 	var missing := DotBrowserSourceList.of_file("user://nothing/here.json")
 	var failed: DotResult = await missing.fetch()
@@ -744,10 +652,7 @@ func _test_backbone() -> void:
 			and (targets[0] as DotBrowserTarget).query_port == 0,
 		"a null queryPort means ask on the game port"
 	)
-	_check(
-		targets.size() == 3 and (targets[1] as DotBrowserTarget).query_port == 27016,
-		"a separate query port is kept"
-	)
+	_check(targets.size() == 3 and (targets[1] as DotBrowserTarget).query_port == 27016, "a separate query port is kept")
 	_check(
 		targets.size() == 3
 			and (targets[2] as DotBrowserTarget).address == "198.51.100.1"
@@ -775,10 +680,7 @@ func _test_backbone() -> void:
 	failing_fake.fail_with = 404
 	failing.http = failing_fake
 	var failed: DotResult = await failing.fetch()
-	_check(
-		not failed.ok and failed.code() == DotError.CODE_HTTP,
-		"a site that refuses the game is a failure, not an empty list"
-	)
+	_check(not failed.ok and failed.code() == DotError.CODE_HTTP, "a site that refuses the game is a failure, not an empty list")
 
 	var browser := DotBrowser.new()
 	browser.register_as = &""
@@ -842,10 +744,7 @@ func _test_over_a_socket() -> void:
 	var named := DotBrowserTarget.make("localhost", server.port)
 	named.protocol = DotBrowserTarget.Protocol.DQP
 	var by_name: DotResult = await browser.query(named)
-	_check(
-		by_name.ok and (by_name.value as DotBrowserEntry).is_online(),
-		"a server listed by name is looked up and asked"
-	)
+	_check(by_name.ok and (by_name.value as DotBrowserEntry).is_online(), "a server listed by name is looked up and asked")
 	var nowhere := DotBrowserTarget.make("no-such-host.invalid", server.port)
 	nowhere.protocol = DotBrowserTarget.Protocol.DQP
 	var unresolved: DotResult = await browser.query(nowhere)
@@ -862,19 +761,13 @@ func _test_over_a_socket() -> void:
 	var again: DotResult = await browser.refresh_known()
 	_check(again.ok, "a refresh of the known list runs")
 	_check(server.queries_seen > before, "and asks again")
-	_check(
-		server.last_if_rev == 7,
-		"sending the revision it already holds, so an unchanged server answers small"
-	)
+	_check(server.last_if_rev == 7, "sending the revision it already holds, so an unchanged server answers small")
 
 	var dead := DotBrowserTarget.make("127.0.0.1", 1)
 	dead.protocol = DotBrowserTarget.Protocol.DQP
 	var missed: DotResult = await browser.query(dead)
 	_check(missed.ok, "a query to nothing still produces an entry")
-	_check(
-		not (missed.value as DotBrowserEntry).is_online(),
-		"marked offline rather than left looking unasked"
-	)
+	_check(not (missed.value as DotBrowserEntry).is_online(), "marked offline rather than left looking unasked")
 
 	# A refresh with several servers in it goes through the fan-out path — the one
 	# GDScript has two wrong spellings for. It must finish rather than hang.
