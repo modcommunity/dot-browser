@@ -17,10 +17,9 @@ const FILL_SWEET_SPOT := 0.75
 ## Returned for a server a party cannot fit in; sorts below every real score.
 const NO_FIT := -1.0
 
-## Score in 0..1, higher is better, or [constant NO_FIT].
-##
-## [param friends] is the number of friends on the server, [param party_size] the seats the
-## caller needs, [param official] whether the server is official or verified.
+## Score in 0..1, higher is better, or [constant NO_FIT]. [param friends] is the friends on the
+## server, [param party_size] the seats the caller needs, [param official] whether the server is
+## official or verified.
 static func score(entry: DotBrowserEntry, friends: int = 0, party_size: int = 1, official: bool = false) -> float:
 	if not entry.is_online() or entry.is_full() or entry.slots_free() < maxi(party_size, 1):
 		return NO_FIT
