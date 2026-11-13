@@ -17,8 +17,11 @@ extends DotBrowserQuery
 ## [code]wss://[/code] on a secure page. `DotWeb.is_secure_context()` is not "the page
 ## is HTTPS" — a browser treats [code]http://localhost[/code] as a trustworthy origin,
 ## so it is true on a plain HTTP page — and dot-core's transport once upgraded every
-## development page's socket and failed against a server with no certificate. The URL
-## is the caller's; a page served over HTTPS has to be given a [code]wss://[/code] one.
+## development page's socket and failed against a server with no certificate.
+## [method DotWeb.is_https_page] is the right question: on such a page [code]ws://[/code]
+## is upgraded to [code]wss://[/code] (a server without TLS then fails quietly instead of
+## tripping the page's CSP), and a loopback endpoint is skipped: no visitor's 127.0.0.1
+## is the server.
 
 enum State { IDLE, CONNECTING, WAITING, DONE }
 
@@ -41,9 +44,22 @@ func query_name() -> StringName:
 func url() -> String:
 	if target == null:
 		return ""
-	if target.websocket_url != "":
-		return target.websocket_url
-	return "ws://%s:%d" % [target.address, target.effective_query_port()]
+	var raw := target.websocket_url
+	if raw == "":
+		raw = "ws://%s:%d" % [target.address, target.effective_query_port()]
+	return page_url(raw, DotWeb.is_https_page())
+
+
+## [param raw] as a page may open it: ws:// becomes wss:// on an HTTPS page, and a
+## loopback host there yields "" (not queryable).
+static func page_url(raw: String, https_page: bool) -> String:
+	if not https_page or not raw.begins_with("ws://"):
+		return raw
+	var rest := raw.substr(5)
+	var host := rest.split("/")[0].rsplit(":", true, 1)[0].trim_prefix("[").trim_suffix("]")
+	if host == "localhost" or host == "::1" or host.begins_with("127.") or host == "0.0.0.0":
+		return ""
+	return "wss://" + rest
 
 
 func begin() -> DotResult:
@@ -54,7 +70,7 @@ func begin() -> DotResult:
 
 	var address := url()
 	if address == "":
-		return _finish(DotResult.fail(DotError.CODE_INVALID, "No address to query."))
+		return _finish(DotResult.fail(DotError.CODE_INVALID, "No address to query (or loopback on an HTTPS page)."))
 
 	_peer = WebSocketPeer.new()
 	var err := _peer.connect_to_url(address)

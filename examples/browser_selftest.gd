@@ -25,8 +25,8 @@ extends Node
 ## godot --headless --path . res://examples/browser_selftest.tscn
 ## [/codeblock]
 
-const SECTIONS := 11
-const CHECKS := 133
+const SECTIONS := 12
+const CHECKS := 139
 
 ## Produced by dot-server's DotQueryProtocol.build_request(TYPE_QUERY, 7,
 ## 0x0123456789abcdef, {"sections": ["info"]}, true).
@@ -141,6 +141,7 @@ func _run() -> void:
 	_test_a2s_info()
 	_test_a2s_split()
 	_test_targets()
+	_test_https_page_urls()
 	_test_entries()
 	_test_filter()
 	_test_favourites()
@@ -308,6 +309,16 @@ func _test_a2s_split() -> void:
 
 
 # --- The list model --------------------------------------------------------
+
+func _test_https_page_urls() -> void:
+	_section("ws urls on an https page")
+	_check(DotBrowserWsClient.page_url("ws://pg01.zeesgames.com:6012", true) == "wss://pg01.zeesgames.com:6012", "ws upgraded to wss")
+	_check(DotBrowserWsClient.page_url("ws://127.0.0.1:27015", true) == "", "loopback skipped")
+	_check(DotBrowserWsClient.page_url("ws://localhost:1", true) == "", "localhost skipped")
+	_check(DotBrowserWsClient.page_url("ws://[::1]:1", true) == "", "ipv6 loopback skipped")
+	_check(DotBrowserWsClient.page_url("ws://127.0.0.1:27015", false) == "ws://127.0.0.1:27015", "http page unchanged")
+	_check(DotBrowserWsClient.page_url("wss://a.b:1", true) == "wss://a.b:1", "wss unchanged")
+
 
 func _test_targets() -> void:
 	_section("targets")
